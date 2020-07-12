@@ -20,17 +20,10 @@ Clean Architecture
 -
 ![clean_architecture](https://user-images.githubusercontent.com/16631131/44717299-53711800-aac5-11e8-86b5-d3bda1035abc.png)
 
-O projeto utiliza uma estratégia de interfaces para prover à inversão de dependência atráves da **Gateway Layer**, dispensando o uso de frameworks de Injeção de contexto.
 
 Architectural approach
 -
 ![clean_architecture_layers](https://user-images.githubusercontent.com/16631131/44717362-73084080-aac5-11e8-9029-10b3da073804.png)
-
-**[Presentation Layer]** : Representada pela **Gateway Layer**, disponibilizando injeções de contexto(**Domain Layer**) à **ViewModel** assim como a implementação da mesma.
-
-**[Domain Layer]** : Com Casos de Uso e interfaces de contrato.
-
-**[Data Layer]** : Representada pela **Plugin Layer**, contém implementações concretas de contratos da **Domain Layer**, implementa regras de Guarda para Casos de Uso e definção de suporte à cache e api.
 
 
 Android Architecture components with clean Architectural
