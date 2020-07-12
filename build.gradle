@@ -16,6 +16,7 @@ buildscript {
     ext.okhttpInterceptor = '4.4.1'
     ext.retrofit = '2.8.1'
     ext.androidCoroutines = "1.3.3"
+    ext.mock_webserver_version = "3.14.2"
 
     repositories {
         google()

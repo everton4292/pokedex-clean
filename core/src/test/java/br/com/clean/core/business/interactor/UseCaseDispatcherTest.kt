@@ -1,6 +1,5 @@
 package br.com.clean.core.business.interactor
 
-import br.com.clean.core.base.AbstractUseCaseTest
 import br.com.clean.core.base.BaseUseCaseTest
 import com.nhaarman.mockitokotlin2.*
 import kotlinx.coroutines.asCoroutineDispatcher

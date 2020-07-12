@@ -29,13 +29,21 @@ import br.com.clean.core.business.interactor.UseCaseDispatcher
 import kotlinx.coroutines.Job
 
 
-abstract class BaseViewModel: ViewModel(), Controller {
+abstract class BaseViewModel : ViewModel(), Controller {
     private val channels: MutableMap<String, MutableLiveData<Any>> = mutableMapOf()
     private val compositeJobDisposable = CompositeJobDisposable()
 
-    final override fun observe(channelName: String, owner: LifecycleOwner, listener: Observer<Any>) {
-        if(channels[channelName] == null) channels[channelName] = MutableLiveData()
+    final override fun observe(
+        channelName: String,
+        owner: LifecycleOwner,
+        listener: Observer<Any>
+    ) {
+        if (channels[channelName] == null) channels[channelName] = MutableLiveData()
         channels[channelName]!!.observe(owner, listener)
+    }
+
+    fun getChannels(): List<String> {
+        return channels.keys.toList()
     }
 
     fun disposeAll() {
@@ -47,7 +55,11 @@ abstract class BaseViewModel: ViewModel(), Controller {
         channel?.postValue(value)
     }
 
-    protected open fun <P,R> dispatchUseCase(param: P?, useCase: UseCase<P,R>, listener: (Output<R>)->Unit): Job? {
+    protected open fun <P, R> dispatchUseCase(
+        param: P?,
+        useCase: UseCase<P, R>,
+        listener: (Output<R>) -> Unit
+    ): Job? {
         val dispatcher = UseCaseDispatcher(CallbackDecorator(useCase, listener))
         val job = dispatcher.dispatch(param)
         compositeJobDisposable.add(job)

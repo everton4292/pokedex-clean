@@ -6,7 +6,7 @@ import br.com.clean.core.business.interactor.UseCase
 import com.nhaarman.mockitokotlin2.*
 import org.junit.jupiter.api.BeforeEach
 
-abstract class AbstractUseCaseTest<P:Any,R:Any>: AbstractTest() {
+abstract class AbstractUseCaseTest<P : Any, R : Any> : AbstractTest() {
     protected lateinit var useCase: UseCase<P, R>
     protected lateinit var result: R
     protected lateinit var output: Output<R>
@@ -31,7 +31,7 @@ abstract class AbstractUseCaseTest<P:Any,R:Any>: AbstractTest() {
         useCase = createUseCase(param, output)
     }
 
-    protected open fun createUseCase(param: P, result: Output<R>): UseCase<P,R> {
+    protected open fun createUseCase(param: P, result: Output<R>): UseCase<P, R> {
         val useCase: UseCase<P, R> = mock()
         whenever(useCase.process(eq(param))).thenCallRealMethod()
         whenever(useCase.execute(eq(param))).thenReturn(result)
@@ -58,22 +58,22 @@ abstract class AbstractUseCaseTest<P:Any,R:Any>: AbstractTest() {
 
     protected fun assertMethodCalls(vararg args: String) {
         val executeMap = mapOf(
-            "EXE"  to {verify(useCase, times(1)).execute(eq(param))},
-            "!EXE" to {verify(useCase, times(0)).execute(eq(param))}
+            "EXE" to { verify(useCase, times(1)).execute(eq(param)) },
+            "!EXE" to { verify(useCase, times(0)).execute(eq(param)) }
         )
 
         val callbackMap = mapOf(
-            "PROC"  to {verify(useCase, times(1)).process(eq(param))},
-            "!PROC" to {verify(useCase, times(0)).process(eq(param))},
-            "GRD"  to {verify(useCase, times(1)).guard(eq(param))},
-            "!GRD"  to {verify(useCase, times(0)).guard(eq(param))},
-            "RES"  to {verify(useCase, times(1)).onResult(eq(output))},
-            "!RES" to {verify(useCase, times(0)).onResult(any())},
-            "ERR"  to {verify(useCase, times(1)).onError(any())},
-            "!ERR" to {verify(useCase, times(0)).onError(any())}
+            "PROC" to { verify(useCase, times(1)).process(eq(param)) },
+            "!PROC" to { verify(useCase, times(0)).process(eq(param)) },
+            "GRD" to { verify(useCase, times(1)).guard(eq(param)) },
+            "!GRD" to { verify(useCase, times(0)).guard(eq(param)) },
+            "RES" to { verify(useCase, times(1)).onResult(eq(output)) },
+            "!RES" to { verify(useCase, times(0)).onResult(any()) },
+            "ERR" to { verify(useCase, times(1)).onError(any()) },
+            "!ERR" to { verify(useCase, times(0)).onError(any()) }
         )
 
-        for(arg in args) {
+        for (arg in args) {
             executeMap[arg]?.invoke()
             callbackMap[arg]?.invoke()
         }
@@ -89,7 +89,7 @@ abstract class AbstractUseCaseTest<P:Any,R:Any>: AbstractTest() {
 }
 
 
-abstract class BaseUseCaseTest: AbstractUseCaseTest<String,String>() {
+abstract class BaseUseCaseTest : AbstractUseCaseTest<String, String>() {
     override fun prepareParam() {
         param = "param"
     }
