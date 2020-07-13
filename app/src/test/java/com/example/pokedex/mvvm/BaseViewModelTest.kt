@@ -1,4 +1,4 @@
-package com.example.pokedex
+package com.example.pokedex.mvvm
 
 import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule

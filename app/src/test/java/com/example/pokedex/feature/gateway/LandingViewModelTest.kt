@@ -1,6 +1,6 @@
 package com.example.pokedex.feature.gateway
 
-import com.example.pokedex.BaseViewModelTest
+import com.example.pokedex.mvvm.BaseViewModelTest
 import com.example.pokedex.DataFactory
 import com.example.pokedex.landing.business.LandingRepository
 import com.example.pokedex.landing.business.LandingUseCase
