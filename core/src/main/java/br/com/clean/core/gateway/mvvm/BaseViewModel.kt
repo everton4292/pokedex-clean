@@ -1,6 +1,7 @@
 package br.com.clean.core.gateway.mvvm
 
 /**
+ * @author Alessandro Balotta de Oliveira
  *
  * This file has the main components of the Gateway (aka Interface Adapter) Layer
  *
