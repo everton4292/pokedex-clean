@@ -1,34 +1,54 @@
-node {
-  // Mark the code checkout 'stage'....
-  stage 'Stage Checkout'
+def err = null
+try {
+  
+    node {
+      
+        stage('Preparation') { 
+            git credentialsId: 'fef4159e-285b-45d9-80ca-5981c4576ba5', url: 'https://github.com/prashant-bhatasana/demoApp/'
+        }
+      
+        stage('Dependencies') {
+                sh 'sudo npm install -g react-native-cli'
+                sh 'npm install'
+                sh 'react-native link'
+                sh 'export JAVA_HOME=/opt/jdk1.8.0_201'
+                sh 'export JRE_HOME=/opt/jdk1.8.0_201/jre'
+                sh 'export PATH=$PATH:/opt/jdk1.8.0_201/bin:/opt/jdk1.8.0_201/jre/bin'
+                sh 'echo $JAVA_HOME'
+        }
+        
+        stage('Clean Build') {
+                dir("android") {
+                    sh "pwd"
+                    sh 'ls -al'
+                    sh './gradlew clean'
+                }   
+        }
+        
+        stage('Build release ') {
+            parameters {
+                credentials credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl', defaultValue: '5d34f6f7-b641-4785-frd5-c93b67e71b6b', description: '', name: 'keystore', required: true
+            }
+            dir("android") {
+                sh './gradlew assembleRelease'
+            }
+        }
+      
+        stage('Compile') {
+            archiveArtifacts artifacts: '**/*.apk', fingerprint: true, onlyIfSuccessful: true            
+        }
+    }
+  
+} catch (caughtError) { 
+    
+    err = caughtError
+    currentBuild.result = "FAILURE"
 
-  // Checkout code from repository and update any submodules
-  checkout scm
-  sh 'git submodule update --init'  
-
-  stage 'Stage Build'
-
-  //branch name from Jenkins environment variables
-  echo "My branch is: ${env.BRANCH_NAME}"
-
-  def flavor = flavor(env.BRANCH_NAME)
-  echo "Building flavor ${flavor}"
-
-  //build your gradle flavor, passes the current build number as a parameter to gradle
-  sh "./gradlew clean assemble${flavor}Debug -PBUILD_NUMBER=${env.BUILD_NUMBER}"
-
-  stage 'Stage Archive'
-  //tell Jenkins to archive the apks
-  archiveArtifacts artifacts: 'app/build/outputs/apk/*.apk', fingerprint: true
-
-  stage 'Stage Upload To Fabric'
-  sh "./gradlew crashlyticsUploadDistribution${flavor}Debug  -PBUILD_NUMBER=${env.BUILD_NUMBER}"
-}
-
-// Pulls the android flavor out of the branch name the branch is prepended with /QA_
-@NonCPS
-def flavor(branchName) {
-  def matcher = (env.BRANCH_NAME =~ /QA_([a-z_]+)/)
-  assert matcher.matches()
-  matcher[0][1]
+} finally {
+    
+    if(currentBuild.result == "FAILURE"){
+              sh "echo 'Build FAILURE'"
+    }else{
+         sh "echo 'Build SUCCESSFUL'"
+    }
 }
