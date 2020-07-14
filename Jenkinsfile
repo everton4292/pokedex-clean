@@ -1,34 +1,80 @@
-node {
-  // Mark the code checkout 'stage'....
-  stage 'Stage Checkout'
+pipeline {
+  agent {
+    // Run on a build agent where we have the Android SDK installed
+    label 'android'
+  }
+  options {
+    // Stop the build early in case of compile or test failures
+    skipStagesAfterUnstable()
+  }
+  stages {
+    stage('Compile') {
+      steps {
+        // Compile the app and its dependencies
+        sh './gradlew compileDebugSources'
+      }
+    }
+    stage('Unit test') {
+      steps {
+        // Compile and run the unit tests for the app and its dependencies
+        sh './gradlew testDebugUnitTest testDebugUnitTest'
 
-  // Checkout code from repository and update any submodules
-  checkout scm
-  sh 'git submodule update --init'  
+        // Analyse the test results and update the build result as appropriate
+        junit '**/TEST-*.xml'
+      }
+    }
+    stage('Build APK') {
+      steps {
+        // Finish building and packaging the APK
+        sh './gradlew assembleDebug'
 
-  stage 'Stage Build'
+        // Archive the APKs so that they can be downloaded from Jenkins
+        archiveArtifacts '**/*.apk'
+      }
+    }
+    stage('Static analysis') {
+      steps {
+        // Run Lint and analyse the results
+        sh './gradlew lintDebug'
+        androidLint pattern: '**/lint-results-*.xml'
+      }
+    }
+    stage('Deploy') {
+      when {
+        // Only execute this stage when building from the `beta` branch
+        branch 'beta'
+      }
+      environment {
+        // Assuming a file credential has been added to Jenkins, with the ID 'my-app-signing-keystore',
+        // this will export an environment variable during the build, pointing to the absolute path of
+        // the stored Android keystore file.  When the build ends, the temporarily file will be removed.
+        SIGNING_KEYSTORE = credentials('my-app-signing-keystore')
 
-  //branch name from Jenkins environment variables
-  echo "My branch is: ${env.BRANCH_NAME}"
+        // Similarly, the value of this variable will be a password stored by the Credentials Plugin
+        SIGNING_KEY_PASSWORD = credentials('my-app-signing-password')
+      }
+      steps {
+        // Build the app in release mode, and sign the APK using the environment variables
+        sh './gradlew assembleRelease'
 
-  def flavor = flavor(env.BRANCH_NAME)
-  echo "Building flavor ${flavor}"
+        // Archive the APKs so that they can be downloaded from Jenkins
+        archiveArtifacts '**/*.apk'
 
-  //build your gradle flavor, passes the current build number as a parameter to gradle
-  sh "./gradlew clean assemble${flavor}Debug -PBUILD_NUMBER=${env.BUILD_NUMBER}"
-
-  stage 'Stage Archive'
-  //tell Jenkins to archive the apks
-  archiveArtifacts artifacts: 'app/build/outputs/apk/*.apk', fingerprint: true
-
-  stage 'Stage Upload To Fabric'
-  sh "./gradlew crashlyticsUploadDistribution${flavor}Debug  -PBUILD_NUMBER=${env.BUILD_NUMBER}"
-}
-
-// Pulls the android flavor out of the branch name the branch is prepended with /QA_
-@NonCPS
-def flavor(branchName) {
-  def matcher = (env.BRANCH_NAME =~ /QA_([a-z_]+)/)
-  assert matcher.matches()
-  matcher[0][1]
+        // Upload the APK to Google Play
+        androidApkUpload googleCredentialsId: 'Google Play', apkFilesPattern: '**/*-release.apk', trackName: 'beta'
+      }
+      post {
+        success {
+          // Notify if the upload succeeded
+          mail to: 'beta-testers@example.com', subject: 'New build available!', body: 'Check it out!'
+        }
+      }
+    }
+  }
+  post {
+    failure {
+      // Notify developer team of the failure
+      mail to: 'android-devs@example.com', subject: 'Oops!', body: "Build ${env.BUILD_NUMBER} failed; ${env.BUILD_URL}"
+    }
+  }
 }
