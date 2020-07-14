@@ -1,71 +1,93 @@
+class Constants {
+
+    static final String MASTER_BRANCH = 'master'
+
+    static final String QA_BUILD = 'Debug'
+    static final String RELEASE_BUILD = 'Release'
+
+    static final String INTERNAL_TRACK = 'internal'
+    static final String RELEASE_TRACK = 'release'
+}
+
+def getBuildType() {
+    switch (env.BRANCH_NAME) {
+        case Constants.MASTER_BRANCH:
+            return Constants.RELEASE_BUILD
+        default:
+            return Constants.QA_BUILD
+    }
+}
+
+def getTrackType() {
+    switch (env.BRANCH_NAME) {
+        case Constants.MASTER_BRANCH:
+            return Constants.RELEASE_TRACK
+        default:
+            return Constants.INTERNAL_TRACK
+    }
+}
+
+def isDeployCandidate() {
+    return ("${env.BRANCH_NAME}" =~ /(develop|master)/)
+}
+
 pipeline {
     agent { dockerfile true }
+    environment {
+        appName = 'jenkins-blog'
 
-    triggers {
-        cron('H */8 * * *') //regular builds
-        pollSCM('* * * * *') //polling for changes, here once a minute
+        KEY_PASSWORD = credentials('keyPassword')
+        KEY_ALIAS = credentials('keyAlias')
+        KEYSTORE = credentials('keystore')
+        STORE_PASSWORD = credentials('storePassword')
     }
-
     stages {
-        stage('Unit & Integration Tests') {
+        stage('Run Tests') {
             steps {
+                echo 'Running Tests'
                 script {
-                    try {
-                        sh './gradlew clean test --no-daemon' //run a gradle task
-                    } finally {
-                        junit '**/build/test-results/test/*.xml' //make the junit test results available in any case (success & failure)
-                    }
+                    VARIANT = getBuildType()
+                    sh "./gradlew test${VARIANT}UnitTest"
                 }
             }
         }
-        stage('Frontend Unit Tests') {
+        stage('Build Bundle') {
+            when { expression { return isDeployCandidate() } }
             steps {
-                sshagent(['git']) {
-                    script {
-                        try {
-                            sh './gradlew cleanFrontendTest --no-daemon'
-                            sh './gradlew frontendUnitTest --no-daemon'
-                        } finally {
-                            junit 'publicapi/frontend/test/karma-result.xml'
+                echo 'Building'
+                script {
+                    VARIANT = getBuildType()
+                    sh "./gradlew -PstorePass=${STORE_PASSWORD} -Pkeystore=${KEYSTORE} -Palias=${KEY_ALIAS} -PkeyPass=${KEY_PASSWORD} bundle${VARIANT}"
+                }
+            }
+        }
+        stage('Deploy App to Store') {
+            when { expression { return isDeployCandidate() } }
+            steps {
+                echo 'Deploying'
+                script {
+                    VARIANT = getBuildType()
+                    TRACK = getTrackType()
+
+                    if (TRACK == Constants.RELEASE_TRACK) {
+                        timeout(time: 5, unit: 'MINUTES') {
+                            input "Proceed with deployment to ${TRACK}?"
                         }
                     }
-                }
-            }
-        }
-        stage('Frontend Static Code Analysis') {
-            steps {
-                script {
+
                     try {
-                        sh './gradlew tslint --no-daemon'
-                    } finally { //Make checkstyle results available
-                        checkstyle canComputeNew: false, defaultEncoding: '', healthy: '', pattern: 'publicapi/frontend/tslint-result.xml', unHealthy: ''
+                        CHANGELOG = readFile(file: 'CHANGELOG.txt')
+                    } catch (err) {
+                        echo "Issue reading CHANGELOG.txt file: ${err.localizedMessage}"
+                        CHANGELOG = ''
                     }
+
+                    androidApkUpload googleCredentialsId: 'play-store-credentials',
+                            filesPattern: "**/outputs/bundle/${VARIANT.toLowerCase()}/*.aab",
+                            trackName: TRACK,
+                            recentChangeList: [[language: 'en-US', text: CHANGELOG]]
                 }
             }
-        }
-        stage('End 2 End Tests') {
-            steps {
-                script {
-                    try {
-                        sh './gradlew e2e --no-daemon'
-                    } finally { //Make selenium/protractor results available and publish the html (containing screenshots)
-                        junit '**/e2e-results/junit-formatted/*.xml'
-                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'publicapi/frontend/test/e2e-results/html-formatted/', reportFiles: 'htmlReport.html', reportName: 'End 2 End Test Report', reportTitles: ''])
-                    }
-                }
-            }
-        }
-        stage('Publish Artifact to Nexus') {
-            steps {
-                sh './gradlew publish --no-daemon'
-            }
-        }
-    }
-    post {
-        always { //Send an email to the person that broke the build
-            step([$class                  : 'Mailer',
-                  notifyEveryUnstableBuild: true,
-                  recipients              : [emailextrecipients([[$class: 'CulpritsRecipientProvider'], [$class: 'RequesterRecipientProvider']])].join(' ')])
         }
     }
 }
