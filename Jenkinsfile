@@ -9,11 +9,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps { //Checking out the repo
-                checkout changelog: true, poll: true, scm: [$class: 'GitSCM', branches: [[name: '*/master']], browser: [$class: 'BitbucketWeb', repoUrl: 'https://web.com/blah'], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'git', url: 'git@github.com:caioschristino/pokedex-clean.git']]]
-            }
-        }
         stage('Unit & Integration Tests') {
             steps {
                 script {
