@@ -1,7 +1,6 @@
 package br.com.clean.core.business.interactor
 
 /**
- * @author Alessandro Balotta de Oliveira
  *
  * An UseCaseDispatcher can run UseCase on coroutines
  * Processable's methods are executed on the `executeOn` dispatcher
