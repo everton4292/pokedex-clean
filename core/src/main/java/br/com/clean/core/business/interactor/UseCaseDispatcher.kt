@@ -15,11 +15,8 @@ class UseCaseDispatcher<P, R>(
     executeOn: CoroutineDispatcher = Dispatchers.IO,
     resultOn: CoroutineDispatcher = Dispatchers.Main
 ) {
-    private val decorator: DispatcherDecorator<P, R>
-
-    init {
-        decorator = DispatcherDecorator(useCase, executeOn, resultOn)
-    }
+    private val decorator: DispatcherDecorator<P, R> =
+        DispatcherDecorator(useCase, executeOn, resultOn)
 
     fun dispatch(param: P? = null): Job? {
         return decorator.dispatch(param)

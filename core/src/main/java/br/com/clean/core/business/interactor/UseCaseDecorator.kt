@@ -16,7 +16,7 @@ abstract class UseCaseDecorator<P,R>(private val useCase: UseCase<P, R>): UseCas
         useCase.onResult(output)
     }
 
-    override fun guard(param: P?) {
+    override fun guard(param: P?): Boolean {
         return useCase.guard(param)
     }
 }
